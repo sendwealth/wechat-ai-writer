@@ -125,9 +125,24 @@ wechat-ai-writer/
 
 ## 📚 文档
 
+- **README.md** - 项目主文档
 - **QUICKSTART.md** - 5分钟快速开始
 - **GLM5_INTEGRATION.md** - GLM-5 完整集成指南
 - **AUTO_TOKEN_GUIDE.md** - 微信 Token 自动管理指南
+- **IMAGE_GENERATION_GUIDE.md** - 图片生成集成指南 🆕
+
+## 🎨 图片生成
+
+支持三种方案：
+- **CogView** (推荐) - ¥0.06/张，与 GLM-5 共用 Key
+- **DALL-E 3** - $0.04/张，质量最高
+- **Placeholder** - 免费，测试用
+
+配置：
+```bash
+# .env
+IMAGE_PROVIDER=cogview  # 或 dalle3 / placeholder
+```
 
 ## ⚙️ 技术栈
 
