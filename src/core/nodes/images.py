@@ -1,12 +1,12 @@
 """
-节点5: 生成图片 - 支持真实图片生成
+节点5: 生成图片 - 支持环境变量配置
 """
+import os
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 from core.state import GlobalState
 from image import generate_article_images
 from utils.logger import logger
-from utils.config import config
 
 
 def generate_images_node(state: GlobalState, config: RunnableConfig) -> Dict[str, Any]:
@@ -30,9 +30,9 @@ def generate_images_node(state: GlobalState, config: RunnableConfig) -> Dict[str
     logger.info(f"📝 为主题生成配图: {topic}")
     logger.info(f"💡 文章亮点: {len(highlights)} 个")
     
-    # 获取图片生成配置
-    image_provider = config.get("image_provider", "placeholder")
-    num_images = config.get("num_images", 2)
+    # 获取图片生成配置（从环境变量读取）
+    image_provider = os.getenv("IMAGE_PROVIDER", "placeholder")
+    num_images = int(os.getenv("NUM_IMAGES", "2"))
     
     logger.info(f"🎨 图片生成提供商: {image_provider}")
     logger.info(f"📊 生成数量: {num_images} 张")
@@ -56,7 +56,7 @@ def generate_images_node(state: GlobalState, config: RunnableConfig) -> Dict[str
         cost = success_count * 0.04  # $0.04/张
         logger.info(f"💰 成本: ${cost:.2f} (DALL-E 3)")
     elif image_provider == "cogview":
-        cost = success_count * 0.02  # ¥0.02/张（估计）
+        cost = success_count * 0.06  # ¥0.06/张
         logger.info(f"💰 成本: ¥{cost:.2f} (CogView)")
     
     logger.info("="*60)
