@@ -1,0 +1,6 @@
+{
+  "model": "glm-5",
+  "temperature": 0.3,
+  "max_tokens": 2000,
+  "top_p": 0.9
+}
