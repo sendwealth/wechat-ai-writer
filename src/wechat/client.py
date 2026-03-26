@@ -2,6 +2,7 @@
 微信公众号客户端 - 自动获取 Access Token
 """
 import os
+import time
 import requests
 import base64
 from typing import Dict, Any, Optional
@@ -159,13 +160,22 @@ class WeChatClient:
         Returns:
             media_id
         """
+        import json
+        
         token = self.get_valid_token()
         url = f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}"
         
         payload = {"articles": articles}
         
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            # 使用 ensure_ascii=False 保留中文字符
+            headers = {"Content-Type": "application/json; charset=utf-8"}
+            response = requests.post(
+                url, 
+                data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
+                headers=headers,
+                timeout=30
+            )
             response.raise_for_status()
             data = response.json()
             
