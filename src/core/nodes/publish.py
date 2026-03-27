@@ -59,12 +59,39 @@ def publish_to_wechat_node(state: GlobalState, config: RunnableConfig) -> Dict[s
             access_token=access_token
         )
         
-        # 读取封面 media_id
+        # 生成封面图
+        logger.info("🎨 开始生成封面图...")
         cover_media_id = None
-        cover_file = "/root/.openclaw/workspace/wechat-ai-writer/.cover_media_id"
-        if os.path.exists(cover_file):
-            with open(cover_file, 'r') as f:
-                cover_media_id = f.read().strip()
+        
+        try:
+            # 使用文章主题生成封面图
+            from image.generator import generate_cover_image
+            import requests
+            
+            # 生成封面图
+            cover_url = generate_cover_image(state.topic)
+            logger.info(f"✅ 封面图生成成功: {cover_url[:50]}...")
+            
+            # 下载图片
+            logger.info("📥 下载封面图...")
+            response = requests.get(cover_url, timeout=30)
+            response.raise_for_status()
+            image_data = response.content
+            
+            # 上传到微信作为永久素材
+            logger.info("📤 上传封面到微信...")
+            result = client.upload_image(image_data, "cover.jpg")
+            cover_media_id = result.get("media_id")
+            logger.info(f"✅ 封面图上传成功: {cover_media_id}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️  封面图生成失败: {e}，使用默认封面")
+            # 如果生成失败，尝试使用缓存的封面
+            cover_file = "/root/.openclaw/workspace/wechat-ai-writer/.cover_media_id"
+            if os.path.exists(cover_file):
+                with open(cover_file, 'r') as f:
+                    cover_media_id = f.read().strip()
+                logger.info(f"   使用缓存封面: {cover_media_id}")
         
         if not cover_media_id:
             logger.error("❌ 未找到封面 media_id")
@@ -91,13 +118,13 @@ def publish_to_wechat_node(state: GlobalState, config: RunnableConfig) -> Dict[s
             if match:
                 title = match.group(0)[:-1]  # 去掉最后的标点
                 # 再次检查字节长度
-                if len(title.encode('utf-8')) > 32:
+                if len(title.encode('utf-8')) > 60:
                     # 仍然过长，继续截断
-                    while len(title.encode('utf-8')) > 32 and len(title) > 0:
+                    while len(title.encode('utf-8')) > 60 and len(title) > 0:
                         title = title[:-1]
             else:
                 # 没有合适的标点，简单截断
-                while len(title_bytes) > 32 and len(full_title) > 0:
+                while len(title_bytes) > 60 and len(full_title) > 0:
                     full_title = full_title[:-1]
                     title_bytes = full_title.encode('utf-8')
                 title = full_title

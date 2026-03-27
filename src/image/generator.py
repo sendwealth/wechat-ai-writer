@@ -255,3 +255,47 @@ def generate_article_images(
             })
     
     return images
+
+
+def generate_cover_image(topic: str, provider: str = None) -> str:
+    """
+    为文章生成封面图（微信公众号专用）
+    
+    Args:
+        topic: 文章主题
+        provider: 图片生成提供商
+    
+    Returns:
+        图片 URL
+    """
+    provider = provider or os.getenv("IMAGE_PROVIDER", "placeholder")
+    generator = create_image_generator(provider)
+    
+    # 构建封面图提示词（更适合微信公众号）
+    # 1. 简洁的视觉元素
+    # 2. 突出科技感
+    # 3. 适合作为封面
+    prompt = f"""微信公众号封面图，主题：{topic}
+设计要求：
+- 简洁、现代、科技感
+- 使用抽象图形和渐变色彩
+- 适合作为科技新闻封面
+- 视觉冲击力强
+- 高质量、专业"""
+    
+    try:
+        logger.info(f"🎨 生成封面图: {topic[:30]}...")
+        
+        # 使用微信封面推荐尺寸（1:1 或 2.35:1）
+        # CogView 支持: 1024x1024, 768x1024, 1024x768
+        # 使用 1024x1024（1:1）作为封面图
+        result = generator.generate(prompt, size="1024x1024")
+        logger.info(f"✅ 封面图生成成功")
+        return result["url"]
+    
+    except Exception as e:
+        logger.error(f"❌ 封面图生成失败: {e}")
+        # 失败时使用占位符
+        placeholder = PlaceholderGenerator()
+        result = placeholder.generate(topic)
+        return result["url"]
