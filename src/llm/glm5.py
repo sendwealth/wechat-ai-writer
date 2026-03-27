@@ -13,7 +13,7 @@ class GLM5LLM(BaseLLM):
     def __init__(self, llm_config: Optional[Dict[str, Any]] = None):
         super().__init__(llm_config)
         self.api_key = config.get_env("ZAI_API_KEY") or config.get_env("OPENAI_API_KEY")
-        self.base_url = config.get_env("ZAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
+        self.base_url = config.get_env("ZAI_BASE_URL", "https://open.bigmodel.cn/api/coding/paas/v4")
         
         if not self.api_key:
             raise ValueError("ZAI_API_KEY 或 OPENAI_API_KEY 未配置")

@@ -96,7 +96,7 @@ class CogViewGenerator(ImageGenerator):
     
     def __init__(self, api_key: str = None):
         super().__init__(api_key or os.getenv("ZAI_API_KEY"))
-        self.base_url = "https://open.bigmodel.cn/api/paas/v4/images/generations"
+        self.base_url = "https://open.bigmodel.cn/api/coding/paas/v4/images/generations"
     
     def generate(
         self,
