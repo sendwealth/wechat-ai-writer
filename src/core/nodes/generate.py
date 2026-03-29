@@ -2,6 +2,7 @@
 节点4: 生成文章
 """
 from typing import Dict, Any
+from pathlib import Path
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import SystemMessage, HumanMessage
 from core.state import GlobalState
@@ -12,7 +13,7 @@ from utils.logger import logger
 
 def generate_article_node(state: GlobalState, config: RunnableConfig) -> Dict[str, Any]:
     """
-    生成公众号文章
+    生成公众号文章（爆款结构）
     
     Args:
         state: 全局状态
@@ -41,15 +42,26 @@ def generate_article_node(state: GlobalState, config: RunnableConfig) -> Dict[st
         
         highlights_text = "\n".join([f"- {h}" for h in highlights[:5]])
         
+        # 加载爆款文章模板
+        prompt_path = Path(__file__).parent.parent.parent / "config" / "prompts" / "article_template_v2.md"
+        
+        try:
+            with open(prompt_path, 'r', encoding='utf-8') as f:
+                base_prompt = f.read()
+        except Exception as e:
+            logger.error(f"⚠️ 加载文章模板失败: {e}")
+            base_prompt = "生成一篇高质量文章"
+        
         # 加载 LLM 配置
         llm_config = app_config.get_llm_config("generate")
         
         # 创建 LLM
         llm = create_llm(llm_config)
         
-        # 提示词
-        sp = """你就是一个普通人，写文章像和朋友聊天，但是你要专注讲好一个故事。
+        # 提示词（爆款结构）
+        sp = f"""{base_prompt}
 
+<<<<<<< HEAD
 核心原则：
 1. **聚焦一个点，深入挖掘**：整篇文章只围绕一个主题展开
 2. **故事驱动，细节为王**：
@@ -85,16 +97,30 @@ def generate_article_node(state: GlobalState, config: RunnableConfig) -> Dict[st
         up = f"""主题：{topic}
 
 核心细节：
+=======
+**当前任务**：
+主题：{topic}
+
+核心亮点：
+>>>>>>> d4a6cab (feat: 完整优化方案 - Phase 1 内容质量优化)
 {highlights_text}
 
-参考资料（背景信息）：
+参考资料：
 {reference_content}
 
-要求：
-- 整篇文章只围绕这个主题展开
-- 深入挖掘一个故事，不要泛泛而谈
-- 有具体的场景、人物、细节
-- 自然、生活化，像一个真人在写"""
+**生成要求**：
+- 字数：2000-3000字
+- 结构：暴力破题 → 痛点共鸣 → 价值交付 → 互动引导 → 行动召唤
+- 语气：实用、友好、真实
+- 融入个人视角（真实案例/体验）
+- 适当使用emoji（增加趣味性）
+- 每段不超过3行（提高可读性）
+- 关键信息加粗（突出重点）
+
+直接输出文章内容
+不要任何开场白或结束语。"""
+        
+        up = f"请根据以上要求，生成一篇关于「{topic}」的微信公众号文章。"
         
         # 调用 LLM
         messages = [

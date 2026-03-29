@@ -1,6 +1,11 @@
 {
   "model": "glm-5",
-  "temperature": 0.9,
-  "max_tokens": 8000,
-  "top_p": 0.98
+  "temperature": 0.85,
+  "max_tokens": 6000,
+  "top_p": 0.95,
+  "content_style": "casual_friendly",
+  "target_audience": "office_workers_tech_enthusiasts",
+  "tone": "helpful_practical",
+  "reading_time": "5-8分钟",
+  "word_count": "2000-3000字"
 }
