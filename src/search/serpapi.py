@@ -1,18 +1,18 @@
 """
 SerpAPI 搜索集成
 """
+import os
 from typing import List, Dict, Any
 from serpapi import GoogleSearch
 from search.base import BaseSearch
-from utils.config import config
 from utils.logger import logger
 
 
 class SerpAPISearch(BaseSearch):
     """SerpAPI 搜索"""
-    
+
     def __init__(self):
-        self.api_key = config.get_env("SERPAPI_KEY")
+        self.api_key = os.getenv("SERPAPI_KEY")
         if not self.api_key:
             raise ValueError("SERPAPI_KEY 未配置")
     

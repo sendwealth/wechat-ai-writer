@@ -1,0 +1,69 @@
+# 多 Agent 写作系统统一配置
+# 环境变量 (.env) 仅存密钥，其他配置全在此文件
+
+workflow:
+  max_write_rounds: 5
+  max_regroup_rounds: 2
+  quality_threshold: 7.5
+  final_threshold: 7.0
+
+agents:
+  orchestrator:
+    model: glm-5
+    temperature: 0.3
+    max_tokens: 1000
+  research:
+    max_results: 8
+    recency_days: 7
+    model: glm-5
+    temperature: 0.2
+  title:
+    candidate_count: 6
+    rule_weight: 0.4
+    llm_weight: 0.6
+    model: glm-5
+    temperature: 0.8
+  outline:
+    model: glm-5
+    temperature: 0.4
+    max_tokens: 2000
+  writer:
+    model: glm-5
+    temperature: 0.85
+    max_tokens: 6000
+    word_target: [1500, 2500]
+    temperature_decay: 0.1  # 每轮降低的温度值
+  critic:
+    model: glm-5
+    temperature: 0.2
+    max_tokens: 2000
+  editor:
+    model: glm-5
+    temperature: 0.5
+    max_tokens: 6000
+  visual:
+    provider: placeholder  # placeholder / cogview / dalle3
+    images_per_article: 2
+
+publishing:
+  author: "AI Writer"
+
+llm:
+  provider: glm  # glm / openai / doubao
+  glm:
+    api_key_env: ZAI_API_KEY
+    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    model: glm-5
+  openai:
+    api_key_env: OPENAI_API_KEY
+    base_url: https://api.openai.com/v1
+    model: gpt-4o
+  doubao:
+    api_key_env: DOUBAO_API_KEY
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    model: doubao-pro-32k
+
+search:
+  provider: serpapi
+  serpapi:
+    api_key_env: SERPAPI_KEY

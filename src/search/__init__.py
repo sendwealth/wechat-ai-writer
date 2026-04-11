@@ -1,16 +1,16 @@
 """
 搜索工厂
 """
+import os
 from typing import Dict, Any
 from search.base import BaseSearch
 from search.serpapi import SerpAPISearch
-from utils.config import config
 
 
 def create_search() -> BaseSearch:
     """创建搜索实例"""
-    provider = config.get_search_provider()
-    
+    provider = os.getenv("SEARCH_PROVIDER", "serpapi")
+
     if provider == "serpapi":
         return SerpAPISearch()
     else:
