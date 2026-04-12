@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WeChat Official Account AI article writer. A LangGraph-based pipeline that searches for tech news, generates Chinese-language articles via LLM, creates images, and publishes drafts to WeChat.
+WeChat Official Account AI article writer. A LangGraph-based multi-agent pipeline that searches for tech news, generates Chinese-language articles via LLM, creates images, and publishes drafts to WeChat.
 
 All prompts, templates, and generated content are in Chinese. The UI language is Chinese.
 
@@ -33,30 +33,42 @@ There is no test suite in the repo (`test_*.py` is gitignored). No linter or typ
 
 ## Architecture
 
-**7-step linear LangGraph StateGraph** defined in `src/core/workflow.py`:
+**Production workflow** is the v2 multi-agent pipeline defined in `src/graph/workflow.py`:
 
-1. `search_tech_news` — SerpAPI Google search
-2. `extract_topic` — LLM extracts core topic and highlights
-3. `deep_search` — Follow-up search for facts/data
-4. `generate_article` — LLM writes full article
-5. `generate_images` — Creates images (CogView/DALL-E/placeholder)
-6. `add_images` — Inserts images into HTML article
-7. `publish_to_wechat` — Publishes draft via WeChat API
+```
+orchestrator ──→ research (parallel)
+               ──→ title_generator (parallel)
 
-Each node is a pure function: `(state: GlobalState, config: RunnableConfig) -> Dict[str, Any]`. Nodes return partial state dicts that LangGraph merges back into `GlobalState` (Pydantic model in `src/core/state.py`).
+research ──→ create_outline
+title_generator ──→ create_outline
 
-**Running the pipeline**: `main_workflow.invoke(input_data)` invokes the compiled graph synchronously.
+create_outline ──→ writer ──→ critic ──→ editor ──→ visual ──→ layout ──→ final_check ──→ publisher
+                              ↑          │
+                              └──rewrite─┘  (score < 7.5, up to 5 rounds)
+
+final_check ──→ regroup ──→ orchestrator  (score < 7.0, switch pattern, up to 2 times)
+```
+
+12 nodes, 2 conditional edges, `MemorySaver` checkpointer. State is `WorkflowState` (TypedDict in `src/graph/state.py`). Routing logic in `src/graph/routers.py`.
+
+Each node is a pure function: `(state: dict, config) -> dict`. Nodes return partial state dicts that LangGraph merges back.
+
+**Legacy v1 pipeline** exists in `src/core/` (7-node linear graph) but is not used by `main.py`.
 
 ## Key Design Patterns
 
-- **Factory pattern**: `create_llm()` (`src/llm/__init__.py`), `create_search()` (`src/search/__init__.py`), `create_image_generator()` (`src/image/generator.py`) — all selected via env vars (`LLM_PROVIDER`, `SEARCH_PROVIDER`, `IMAGE_PROVIDER`)
+- **Factory pattern**: `create_llm()` (`src/llm/base.py`), `create_search()` (`src/search/__init__.py`), `create_image_generator()` (`src/image/generator.py`) — all selected via env vars
 - **All LLM providers use `langchain_openai.ChatOpenAI`** with different `base_url`/`api_key` — they all speak the OpenAI-compatible protocol
-- **Config layering**: env vars for secrets/providers, JSON files in `config/llm/` for per-task LLM params (temperature, max_tokens), YAML in `config/title_templates.yaml` for title patterns, Markdown in `config/prompts/` for article structure
+- **UnifiedLLM with retry**: `src/llm/base.py` wraps all LLM calls with exponential backoff retry for 429/5xx errors
+- **Unified JSON parser**: `src/utils/json_parser.py` — `parse_llm_json()` handles markdown code blocks, truncated JSON (unterminated strings), bracket completion, and regex fallback. All agents use this instead of inline `split("```json")` patterns
+- **Editor separator format**: Editor outputs article as plain text + `---EDIT_NOTES---` separator + JSON notes. Avoids wrapping full articles in JSON which causes truncation
+- **Config layering**: env vars for secrets/providers, `config/settings.yaml` for per-agent LLM params (temperature, max_tokens), Markdown in `config/prompts/` for prompts
 - **Error handling**: Every node has try/except with fallback values so the workflow always completes
+- **Score stagnation exit**: Writer-critic loop exits early if score doesn't improve for 2 consecutive rounds
 
 ## Working Directory Note
 
-`main.py` uses bare imports like `from core.workflow import ...`. Run it from the project root as `python src/main.py` — Python adds the script's directory (`src/`) to `sys.path`.
+`main.py` uses bare imports like `from graph.workflow import ...`. Run it from the project root as `python src/main.py` — Python adds the script's directory (`src/`) to `sys.path`.
 
 ## Environment Variables
 
