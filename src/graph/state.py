@@ -49,6 +49,7 @@ class WorkflowState(TypedDict):
     # ── Writer Agent ──
     draft_article: str
     write_round: int             # 当前写作轮次
+    score_history: list          # 每轮 overall_score 记录，用于提前退出
 
     # ── Critic Agent ──
     quality_scores: list         # [QualityScore, ...]

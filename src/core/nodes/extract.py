@@ -10,6 +10,7 @@ from core.state import GlobalState
 from llm import create_llm
 from utils.config import config as app_config
 from utils.logger import logger
+from utils.json_parser import parse_llm_json
 
 
 def extract_topic_node(state: GlobalState, config: RunnableConfig) -> Dict[str, Any]:
@@ -80,16 +81,11 @@ def extract_topic_node(state: GlobalState, config: RunnableConfig) -> Dict[str, 
         ]
         
         response = llm.invoke(messages)
-        result_text = response.content
-        
-        # 解析 JSON
-        # 移除可能的 markdown 代码块标记
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0]
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0]
-        
-        result = json.loads(result_text.strip())
+
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["topic", "highlights"],
+        )
         
         topic = result.get("topic", "")
         highlights = result.get("highlights", [])

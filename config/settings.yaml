@@ -36,7 +36,7 @@ agents:
   critic:
     model: glm-5
     temperature: 0.2
-    max_tokens: 2000
+    max_tokens: 6000  # 6 个维度的 JSON 输出需要足够空间，避免截断
   editor:
     model: glm-5
     temperature: 0.5

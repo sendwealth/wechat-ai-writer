@@ -1,7 +1,6 @@
 """
 Agent: Research - 搜索 + 筛选 + 提取关键数据
 """
-import json
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
@@ -11,6 +10,7 @@ from llm import create_llm
 from utils.config import config
 from utils.logger import logger
 from utils.retry import with_retry
+from utils.json_parser import parse_llm_json
 
 
 def _do_search(query: str, count: int) -> list:
@@ -65,14 +65,12 @@ def research_node(state: dict, run_config=None) -> dict:
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
-        result_text = response.content.strip()
 
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0]
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0]
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["curated_references", "key_data_points"],
+        )
 
-        result = json.loads(result_text.strip())
         curated = result.get("curated_references", search_results[:5])
         data_points = result.get("key_data_points", [])
 

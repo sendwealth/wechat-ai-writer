@@ -1,13 +1,12 @@
 """
 Agent: Title Generator - 生成 + 混合评分候选标题
 """
-import json
-import re
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import SystemMessage, HumanMessage
 from llm import create_llm
 from utils.config import config
 from utils.logger import logger
+from utils.json_parser import parse_llm_json
 
 
 # ── 规则评分（满分100）──
@@ -63,26 +62,55 @@ def _rule_score(title: str) -> dict:
     return {'score': total, 'details': details}
 
 
-def _llm_score_title(title: str, topic: str) -> dict:
-    """LLM 评分"""
+def _batch_llm_score(titles: list, topic: str) -> dict:
+    """一次性 LLM 批量评分所有标题。返回 {title_text: avg_score}"""
+    if not titles:
+        return {}
+
     try:
         llm = create_llm("title")
-        prompt_template = config.load_prompt("title_scorer")
-        user_prompt = prompt_template.replace("{title}", title).replace("{topic}", topic)
+
+        # 构造批量评分 prompt
+        titles_list = "\n".join([f'{i+1}. "{t}"' for i, t in enumerate(titles)])
+        user_prompt = f"""请对以下 {len(titles)} 个微信公众号文章标题逐个评分。
+
+主题：{topic}
+
+评分维度（每项 0-10 分，取平均分）：
+- 点击欲望：看到标题是否想点进去？
+- 信息承诺：标题是否暗示了有价值的内容？
+- 情绪触发：是否引发好奇/焦虑/惊喜等情绪？
+- 真实可信：不像标题党，感觉可信？
+
+标题列表：
+{titles_list}
+
+输出 JSON 格式（紧凑）：
+{{"scores": [{{"index": 1, "avg_score": 7.5}}, ...]}}
+
+只输出 JSON。"""
 
         messages = [HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
-        text = response.content.strip()
 
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0]
-        elif "```" in text:
-            text = text.split("```")[1].split("```")[0]
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["scores"],
+        )
 
-        return json.loads(text.strip())
+        # 构建映射: title -> score
+        score_map = {}
+        score_list = result.get("scores", [])
+        for i, item in enumerate(score_list):
+            idx = item.get("index", i + 1) - 1
+            if 0 <= idx < len(titles):
+                score_map[titles[idx]] = item.get("avg_score", 6.0)
+
+        return score_map
+
     except Exception as e:
-        logger.warning(f"⚠️ LLM 标题评分失败: {e}")
-        return {"avg_score": 6.0}
+        logger.warning(f"⚠️ LLM 批量标题评分失败: {e}")
+        return {}
 
 
 def title_generator_node(state: dict, run_config=None) -> dict:
@@ -109,20 +137,21 @@ def title_generator_node(state: dict, run_config=None) -> dict:
 
         messages = [HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
-        text = response.content.strip()
 
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0]
-        elif "```" in text:
-            text = text.split("```")[1].split("```")[0]
-
-        result = json.loads(text.strip())
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["titles"],
+        )
         raw_titles = result.get("titles", [])
 
         if not raw_titles:
             raw_titles = [{"title": keyword, "strategy": "direct"}]
 
-        # 2. 混合评分
+        # 2. 批量 LLM 评分（1 次调用替代 N 次）
+        title_texts = [item.get("title", keyword) for item in raw_titles]
+        llm_scores = _batch_llm_score(title_texts, keyword)
+
+        # 3. 混合评分
         candidates = []
         for item in raw_titles:
             title = item.get("title", keyword)
@@ -132,8 +161,7 @@ def title_generator_node(state: dict, run_config=None) -> dict:
             rule = _rule_score(title)
 
             # LLM 评分 (0-10 → 缩放到 0-100)
-            llm_result = _llm_score_title(title, keyword)
-            llm_score = llm_result.get("avg_score", 6.0) * 10
+            llm_score = llm_scores.get(title, 6.0) * 10
 
             # 加权
             final_score = rule['score'] * rule_weight + llm_score * llm_weight

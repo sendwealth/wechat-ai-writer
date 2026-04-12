@@ -90,6 +90,9 @@ def writer_node(state: dict, run_config=None) -> dict:
         response = llm.invoke(messages)
         article = response.content.strip()
 
+        # Token 使用监控
+        _log_token_usage(response, f"writer-r{write_round}")
+
         logger.info(f"✅ 写作完成: {len(article)} 字符")
 
         return {
@@ -104,3 +107,18 @@ def writer_node(state: dict, run_config=None) -> dict:
             "write_round": write_round,
             "errors": [{"node": "writer", "error": str(e), "severity": "RETRYABLE", "timestamp": ""}],
         }
+
+
+def _log_token_usage(response, agent_name: str):
+    """记录 LLM 响应的 token 使用量"""
+    try:
+        meta = getattr(response, 'response_metadata', {}) or {}
+        token_usage = meta.get('token_usage', {}) or meta.get('usage', {}) or {}
+        prompt_tokens = token_usage.get('prompt_tokens', 0)
+        completion_tokens = token_usage.get('completion_tokens', 0)
+        total = token_usage.get('total_tokens', prompt_tokens + completion_tokens)
+
+        if completion_tokens > 0:
+            logger.info(f"   📊 [{agent_name}] tokens: prompt={prompt_tokens}, completion={completion_tokens}, total={total}")
+    except Exception:
+        pass

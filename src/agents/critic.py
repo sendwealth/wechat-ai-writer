@@ -1,12 +1,12 @@
 """
 Agent: Critic - 六维质量评分
 """
-import json
-import re
 from langchain_core.messages import SystemMessage, HumanMessage
 from llm import create_llm
 from utils.config import config
 from utils.logger import logger
+from utils.json_parser import parse_llm_json
+
 
 # 权重配置
 WEIGHTS = {
@@ -17,37 +17,6 @@ WEIGHTS = {
     "originality": 0.15,
     "cta": 0.15,
 }
-
-
-def _repair_json(text: str) -> dict:
-    """尝试修复截断的 JSON"""
-    # 先试直接解析
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    # 尝试补全截断的 JSON：找到最后一个完整的对象
-    # 方法：逐个字符回退，找到可以解析的位置
-    for i in range(len(text) - 1, max(10, len(text) - 500), -1):
-        if text[i] == '}':
-            try:
-                result = json.loads(text[:i+1] + ']}')
-                return result
-            except json.JSONDecodeError:
-                continue
-
-    # 最后手段：用正则提取分数
-    scores = []
-    for dim in WEIGHTS.keys():
-        match = re.search(rf'"{dim}".*?"score"\s*:\s*(\d+\.?\d*)', text)
-        if match:
-            scores.append({"dimension": dim, "score": float(match.group(1)), "feedback": ""})
-
-    if scores:
-        return {"scores": scores, "overall_score": 0, "summary": "JSON截断，正则提取分数", "improvement_suggestions": []}
-
-    raise json.JSONDecodeError("无法修复 JSON", text, 0)
 
 
 def critic_node(state: dict, run_config=None) -> dict:
@@ -73,9 +42,6 @@ def critic_node(state: dict, run_config=None) -> dict:
 
     try:
         llm = create_llm("critic")
-        # 确保足够的 max_tokens
-        llm.llm.max_tokens = 4000
-
         system_prompt = config.load_prompt("critic")
 
         # 精简 prompt，只发文章内容（不发大纲，减少 token）
@@ -89,24 +55,25 @@ def critic_node(state: dict, run_config=None) -> dict:
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
-        result_text = response.content.strip()
 
-        # 提取 JSON
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0]
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0]
-
-        # 用修复逻辑解析
-        result = _repair_json(result_text.strip())
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["scores", "overall_score", "summary", "improvement_suggestions"],
+        )
 
         scores = result.get("scores", [])
         summary = result.get("summary", "")
         suggestions = result.get("improvement_suggestions", [])
 
+        # 如果 scores 是 dict 而非 list（正则兜底场景），转为 list
+        if isinstance(scores, dict):
+            scores = [{"dimension": k, "score": v if isinstance(v, (int, float)) else v.get("score", 5.0), "feedback": ""} for k, v in scores.items()]
+
         # 计算加权总分
         total = 0.0
         for s in scores:
+            if not isinstance(s, dict):
+                continue
             dim = s.get("dimension", "")
             score = s.get("score", 5.0)
             weight = WEIGHTS.get(dim, 0.15)
@@ -120,15 +87,22 @@ def critic_node(state: dict, run_config=None) -> dict:
         status = "✅ 达标" if overall >= threshold else "❌ 不达标"
         logger.info(f"{status} 总分: {overall}/{threshold}")
         for s in scores:
+            if not isinstance(s, dict):
+                continue
             dim = s.get("dimension", "")
             sc = s.get("score", 0)
             bar = "█" * int(sc) + "░" * (10 - int(sc))
             logger.info(f"   {dim:16s} [{bar}] {sc}/10")
 
+        # 记录分数到历史
+        score_history = list(state.get("score_history", []))
+        score_history.append(overall)
+
         return {
             "quality_scores": scores,
             "overall_score": overall,
             "critic_feedback": feedback,
+            "score_history": score_history,
         }
 
     except Exception as e:

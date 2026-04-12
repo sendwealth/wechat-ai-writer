@@ -1,12 +1,12 @@
 """
 Agent: Orchestrator - 主题分类 + 写作策略选择
 """
-import json
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import SystemMessage, HumanMessage
 from llm import create_llm
 from utils.config import config
 from utils.logger import logger
+from utils.json_parser import parse_llm_json
 
 
 def orchestrator_node(state: dict, run_config=None) -> dict:
@@ -21,22 +21,11 @@ def orchestrator_node(state: dict, run_config=None) -> dict:
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
-        result_text = response.content.strip()
 
-        # 清理 JSON（处理截断）
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0]
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0]
-
-        result_text = result_text.strip()
-        # 尝试修复截断的 JSON
-        if not result_text.endswith("}"):
-            last_brace = result_text.rfind("}")
-            if last_brace > 0:
-                result_text = result_text[:last_brace+1]
-
-        result = json.loads(result_text)
+        result = parse_llm_json(
+            response.content,
+            expected_keys=["topic_category", "article_pattern", "target_audience", "writing_strategy"],
+        )
 
         category = result.get("topic_category", "tech_trends")
         pattern = result.get("article_pattern", "essay")

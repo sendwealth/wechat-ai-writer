@@ -11,6 +11,7 @@ def route_after_critic(state: dict) -> str:
     - 达标 → editor（润色）
     - 不达标且轮次未满 → writer（重写）
     - 不达标但轮次已满 → editor（强制走润色，保守输出）
+    - 分数连续 2 轮没提升 → editor（提前退出，避免浪费）
     """
     overall_score = state.get("overall_score", 0)
     write_round = state.get("write_round", 0)
@@ -20,7 +21,20 @@ def route_after_critic(state: dict) -> str:
     if overall_score >= threshold:
         logger.info(f"🟢 Critic 达标: {overall_score} >= {threshold} → Editor")
         return "editor"
-    elif write_round < max_rounds:
+
+    # 提前退出：检查分数是否停滞
+    score_history = state.get("score_history", [])
+    if len(score_history) >= 2:
+        last_two = score_history[-2:]
+        # 最近 2 轮分数没有提升（差值 < 0.3 算停滞）
+        if last_two[-1] - last_two[-2] < 0.3:
+            logger.info(
+                f"⏹️ Critic 分数停滞: 最近 2 轮 {last_two[-2]:.1f} → {last_two[-1]:.1f}，"
+                f"提前退出 → Editor"
+            )
+            return "editor"
+
+    if write_round < max_rounds:
         logger.info(f"🔴 Critic 不达标: {overall_score} < {threshold} (第{write_round}/{max_rounds}轮) → 重写")
         return "rewrite"
     else:

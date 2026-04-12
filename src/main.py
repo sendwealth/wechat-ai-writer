@@ -37,7 +37,7 @@ def run_workflow(keyword: str, dry_run: bool = False):
 
     # 运行工作流（带检查点）
     thread_id = str(uuid.uuid4())[:8]
-    config = {"configurable": {"thread_id": thread_id}}
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
 
     result = main_workflow.invoke(input_data, config)
 

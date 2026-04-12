@@ -1,12 +1,12 @@
 """
 Agent: Outline - 生成结构化大纲
 """
-import json
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import SystemMessage, HumanMessage
 from llm import create_llm
 from utils.config import config
 from utils.logger import logger
+from utils.json_parser import parse_llm_json
 
 
 def outline_node(state: dict, run_config=None) -> dict:
@@ -37,14 +37,11 @@ def outline_node(state: dict, run_config=None) -> dict:
 
         messages = [SystemMessage(content=user_prompt), HumanMessage(content=f"请为主题「{title}」生成文章大纲。")]
         response = llm.invoke(messages)
-        result_text = response.content.strip()
 
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0]
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0]
-
-        outline = json.loads(result_text.strip())
+        outline = parse_llm_json(
+            response.content,
+            expected_keys=["hook", "sections", "cta"],
+        )
 
         sections = outline.get("sections", [])
         hook = outline.get("hook", {})
