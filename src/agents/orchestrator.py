@@ -24,18 +24,20 @@ def orchestrator_node(state: dict, run_config=None) -> dict:
 
         result = parse_llm_json(
             response.content,
-            expected_keys=["topic_category", "article_pattern", "target_audience", "writing_strategy"],
+            expected_keys=["topic_category", "jtbd", "article_pattern", "target_audience", "writing_strategy"],
         )
 
         category = result.get("topic_category", "tech_trends")
+        jtbd = result.get("jtbd", "learn_skill")
         pattern = result.get("article_pattern", "essay")
         audience = result.get("target_audience", "泛科技读者")
         strategy = result.get("writing_strategy", {})
 
-        logger.info(f"✅ 分类: {category}, 结构: {pattern}, 读者: {audience}")
+        logger.info(f"✅ 分类: {category}, JTBD: {jtbd}, 结构: {pattern}, 读者: {audience}")
 
         return {
             "topic_category": category,
+            "jtbd": jtbd,
             "article_pattern": pattern,
             "target_audience": audience,
             "writing_strategy": strategy,
@@ -47,6 +49,7 @@ def orchestrator_node(state: dict, run_config=None) -> dict:
         logger.error(f"❌ Orchestrator 失败: {e}")
         return {
             "topic_category": "tech_trends",
+            "jtbd": "learn_skill",
             "article_pattern": "essay",
             "target_audience": "泛科技读者",
             "writing_strategy": {},

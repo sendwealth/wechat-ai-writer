@@ -1,5 +1,5 @@
 """
-Agent: Critic - 六维质量评分
+Agent: Critic - 七维质量评分（新增真人感维度）
 """
 from langchain_core.messages import SystemMessage, HumanMessage
 from llm import create_llm
@@ -8,14 +8,15 @@ from utils.logger import logger
 from utils.json_parser import parse_llm_json
 
 
-# 权重配置
+# 权重配置（新增 human_like 维度，权重30%）
 WEIGHTS = {
-    "hook": 0.20,
-    "structure": 0.15,
-    "persuasiveness": 0.20,
-    "readability": 0.15,
-    "originality": 0.15,
-    "cta": 0.15,
+    "hook": 0.15,
+    "structure": 0.10,
+    "persuasiveness": 0.15,
+    "readability": 0.10,
+    "originality": 0.10,
+    "cta": 0.10,
+    "human_like": 0.30,
 }
 
 
@@ -50,7 +51,7 @@ def critic_node(state: dict, run_config=None) -> dict:
 
 {article}
 
-要求：输出紧凑JSON，每个feedback不超过20个字。格式：
+要求：输出紧凑JSON，包含7个维度（hook/structure/persuasiveness/readability/originality/cta/human_like），每个feedback不超过20个字。格式：
 {{"scores":[{{"dimension":"hook","score":8,"feedback":"xxx"}}...],"overall_score":8.0,"summary":"xxx","improvement_suggestions":["xxx"]}}"""
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
@@ -76,7 +77,7 @@ def critic_node(state: dict, run_config=None) -> dict:
                 continue
             dim = s.get("dimension", "")
             score = s.get("score", 5.0)
-            weight = WEIGHTS.get(dim, 0.15)
+            weight = WEIGHTS.get(dim, 0.10)  # 未知维度默认权重0.10
             total += score * weight
 
         overall = round(total, 1)

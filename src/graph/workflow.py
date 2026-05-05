@@ -1,6 +1,6 @@
 """
 LangGraph 工作流定义 - 多 Agent 协作图
-包含条件边、并行分支、质量关卡
+包含条件边、并行分支、质量关卡、人味注入
 """
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -12,6 +12,7 @@ from agents.orchestrator import orchestrator_node
 from agents.research import research_node
 from agents.title_generator import title_generator_node
 from agents.outline import outline_node
+from agents.voice_injector import voice_injector_node
 from agents.writer import writer_node
 from agents.critic import critic_node
 from agents.editor import editor_node
@@ -64,6 +65,7 @@ def build_workflow():
     builder.add_node("research",        research_node)
     builder.add_node("title_generator", title_generator_node)
     builder.add_node("create_outline",  outline_node)
+    builder.add_node("voice_injector",  voice_injector_node)  # NEW: 人味注入
     builder.add_node("writer",          writer_node)
     builder.add_node("critic",          critic_node)
     builder.add_node("editor",          editor_node)
@@ -84,8 +86,11 @@ def build_workflow():
     builder.add_edge("research", "create_outline")
     builder.add_edge("title_generator", "create_outline")
 
+    # ── 大纲 → 人味注入 → 写作 ──
+    builder.add_edge("create_outline", "voice_injector")
+    builder.add_edge("voice_injector", "writer")
+
     # ── 写作 → 评审 ──
-    builder.add_edge("create_outline", "writer")
     builder.add_edge("writer", "critic")
 
     # ── Critic 条件边 ──

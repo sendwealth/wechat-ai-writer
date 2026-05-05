@@ -37,6 +37,8 @@ def _build_writer_prompt(state: dict) -> tuple:
     references = state.get("curated_references", [])
     data_points = state.get("key_data_points", [])
     title = state.get("selected_title", state.get("topic_keyword", "科技"))
+    voice_capsule = state.get("voice_capsule", "")
+    jtbd = state.get("jtbd", "learn_skill")
 
     refs_text = ""
     for i, ref in enumerate(references[:5], 1):
@@ -58,6 +60,13 @@ def _build_writer_prompt(state: dict) -> tuple:
 
 ## 关键数据点
 {data_text}
+
+## 作者的真实体验（必须融入文章，使其成为文章的灵魂）★
+以下是作者关于这个话题的真实感受和经历。请将它们自然地融入文章各部分，
+不要原文照抄，而是作为「作者视角」散落在正文中。
+这是让文章有「人味」的关键——读者会因为这种真实感而关注。
+
+{voice_capsule if voice_capsule else "（暂无个人体验，请在文章中适当加入：'我试用后发现...'、'我的感受是...'、'说实话我一开始以为...'等真实表达）"}
 
 {feedback_section}
 

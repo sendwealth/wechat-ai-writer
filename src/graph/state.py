@@ -16,7 +16,7 @@ class ErrorRecord(TypedDict):
 
 class QualityScore(TypedDict):
     """单维度质量评分"""
-    dimension: str  # hook / structure / persuasiveness / readability / originality / cta
+    dimension: str  # hook / structure / persuasiveness / readability / originality / cta / human_like
     score: float    # 0-10
     feedback: str
 
@@ -29,6 +29,7 @@ class WorkflowState(TypedDict):
 
     # ── Orchestrator 输出 ──
     topic_category: str          # ai_tools / tech_trends / career / lifestyle
+    jtbd: str                    # save_time / learn_skill / social_currency / resonance
     article_pattern: str         # conflict / listicle / story / essay
     target_audience: str         # 程序员 / 职场人 / 创业者 / 泛科技读者
     writing_strategy: dict       # 写作策略参数
@@ -45,6 +46,9 @@ class WorkflowState(TypedDict):
 
     # ── Outline Agent ──
     outline: dict                # {hook, sections, cta}
+
+    # ── Voice Injector (NEW) ──
+    voice_capsule: str           # 个人视角胶囊（第一人称体验描述，注入 writer）
 
     # ── Writer Agent ──
     draft_article: str
