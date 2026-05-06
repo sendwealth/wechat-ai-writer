@@ -16,7 +16,6 @@ from agents.voice_injector import voice_injector_node
 from agents.writer import writer_node
 from agents.critic import critic_node
 from agents.editor import editor_node
-from agents.visual import visual_node
 from agents.layout import layout_node
 from agents.publisher import publisher_node
 
@@ -69,7 +68,6 @@ def build_workflow():
     builder.add_node("writer",          writer_node)
     builder.add_node("critic",          critic_node)
     builder.add_node("editor",          editor_node)
-    builder.add_node("visual",          visual_node)
     builder.add_node("layout",          layout_node)
     builder.add_node("final_check",     _final_check_node)
     builder.add_node("publisher",       publisher_node)
@@ -103,9 +101,8 @@ def build_workflow():
         }
     )
 
-    # ── Editor → Visual → Layout → 终审 ──
-    builder.add_edge("editor", "visual")
-    builder.add_edge("visual", "layout")
+    # ── Editor → Layout → 终审 ──
+    builder.add_edge("editor", "layout")
     builder.add_edge("layout", "final_check")
 
     # ── 终审条件边 ──

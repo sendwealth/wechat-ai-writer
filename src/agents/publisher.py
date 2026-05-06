@@ -12,7 +12,6 @@ def publisher_node(state: dict, run_config=None) -> dict:
     dry_run = state.get("dry_run", False)
     article_html = state.get("article_html", "")
     title = state.get("selected_title", state.get("topic_keyword", "科技"))
-    images = state.get("article_images", [])
     overall_score = state.get("overall_score", 0)
 
     logger.info(f"📤 Publisher: {'测试模式' if dry_run else '准备发布'}")
@@ -68,20 +67,6 @@ def publisher_node(state: dict, run_config=None) -> dict:
             logger.info(f"✅ 封面上传成功: {cover_media_id}")
         except Exception as e:
             logger.warning(f"⚠️ 封面图失败: {e}")
-
-        if not cover_media_id and images:
-            # 用正文第一张图作为封面
-            try:
-                first_img = images[0]
-                if first_img.get("url") and not first_img.get("fallback", False):
-                    import requests as req
-                    resp = req.get(first_img["url"], timeout=30)
-                    resp.raise_for_status()
-                    upload_result = client.upload_image(resp.content, "fallback_cover.jpg")
-                    cover_media_id = upload_result.get("media_id")
-                    logger.info(f"✅ 使用正文图作为封面: {cover_media_id}")
-            except Exception as e:
-                logger.warning(f"⚠️ 备选封面也失败: {e}")
 
         # 处理标题长度（微信限制约64字节）
         import re

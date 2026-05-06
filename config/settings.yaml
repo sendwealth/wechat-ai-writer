@@ -13,8 +13,9 @@ agents:
     temperature: 0.3
     max_tokens: 1000
   research:
-    max_results: 8
+    max_results: 5          # 每路搜索数量（新闻/数据/观点各5条）
     recency_days: 7
+    content_fetch_count: 3  # 全文抓取的新闻条数
     model: glm-5
     temperature: 0.2
   title:
@@ -45,9 +46,6 @@ agents:
     model: glm-5
     temperature: 0.5
     max_tokens: 6000
-  visual:
-    provider: placeholder  # placeholder / cogview / dalle3
-    images_per_article: 2
 
 publishing:
   author: "AI Writer"
