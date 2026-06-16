@@ -59,6 +59,12 @@ class WorkflowState(TypedDict):
     quality_scores: list         # [QualityScore, ...]
     overall_score: float
     critic_feedback: str
+    rewrite_directives: list     # 结构化修正指令 [{dimension, action, severity}]
+    rule_check_result: dict      # 规则预检结果（扣分/违规/统计）
+
+    # ── 最佳版本追踪 ──
+    best_draft: str              # 历史最高分草稿（防止重写/降级丢失好版本）
+    best_score: float            # 历史最高分
 
     # ── Editor Agent ──
     edited_article: str

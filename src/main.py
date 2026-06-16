@@ -5,6 +5,7 @@ WeChat AI Writer v2.0 - 多 Agent 微信公众号写作系统
 """
 import argparse
 import json
+import time
 import uuid
 from pathlib import Path
 from graph.workflow import main_workflow
@@ -39,7 +40,14 @@ def run_workflow(keyword: str, dry_run: bool = False):
     thread_id = str(uuid.uuid4())[:8]
     config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
 
+    start_time = time.time()
     result = main_workflow.invoke(input_data, config)
+    elapsed = time.time() - start_time
+
+    # 记录运行指标（Loop Engineering 可观测性）
+    from utils.metrics import record_run
+    record_run(result, elapsed)
+    logger.info(f"⏱️ 总耗时: {elapsed:.1f}s")
 
     # 输出结果
     logger.info("\n" + "=" * 60)

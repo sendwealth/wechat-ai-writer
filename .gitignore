@@ -27,3 +27,7 @@ outputs/
 .idea/
 *.swp
 *.swo
+
+
+# 运行生成物
+data/

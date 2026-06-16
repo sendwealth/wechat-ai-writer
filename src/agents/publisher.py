@@ -20,12 +20,21 @@ def publisher_node(state: dict, run_config=None) -> dict:
 
     if dry_run:
         logger.info("⚠️ 测试模式，跳过发布")
+        # dry-run 下仍生成封面到本地（不上传微信）
+        cover_path = None
+        try:
+            from utils.cover_gen import generate_cover
+            cover_path = generate_cover(title, state.get("topic_category", ""))
+            logger.info(f"🎨 封面已生成: {cover_path}")
+        except Exception as e:
+            logger.warning(f"⚠️ 封面生成失败: {e}")
         return {
             "publish_result": {
                 "status": "dry_run",
                 "title": title,
                 "score": overall_score,
                 "article_length": len(article_html),
+                "cover_path": cover_path,
             },
             "publish_success": True,
         }
@@ -53,16 +62,16 @@ def publisher_node(state: dict, run_config=None) -> dict:
 
         client = WeChatClient(appid, appsecret)
 
-        # 生成封面图
+        # 生成本地封面图（Pillow 纯代码生成，零 API 成本）
         cover_media_id = None
         try:
-            from image.generator import generate_cover_image
-            import requests
+            from utils.cover_gen import generate_cover
+            cover_path = generate_cover(title, state.get("topic_category", ""))
 
-            cover_url = generate_cover_image(title)
-            resp = requests.get(cover_url, timeout=30)
-            resp.raise_for_status()
-            upload_result = client.upload_image(resp.content, "cover.jpg")
+            # 上传到微信获取 media_id
+            with open(cover_path, "rb") as f:
+                cover_bytes = f.read()
+            upload_result = client.upload_image(cover_bytes, "cover.png")
             cover_media_id = upload_result.get("media_id")
             logger.info(f"✅ 封面上传成功: {cover_media_id}")
         except Exception as e:

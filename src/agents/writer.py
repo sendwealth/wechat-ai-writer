@@ -16,15 +16,39 @@ def _build_writer_prompt(state: dict) -> tuple:
 
     system = base + "\n\n" + pattern_prompt
 
-    # 反馈注入（非第一轮时）
+    # 反馈注入：优先使用结构化修正指令（非第一轮时）
     write_round = state.get("write_round", 0)
     feedback_section = ""
     if write_round > 0:
+        # 优先用结构化 directives（Loop Engineering 核心改造）
+        rewrite_directives = state.get("rewrite_directives", [])
         critic_feedback = state.get("critic_feedback", "")
         quality_scores = state.get("quality_scores", [])
-        low_dims = [s for s in quality_scores if s.get("score", 10) < 7.0]
 
-        if low_dims or critic_feedback:
+        if rewrite_directives:
+            feedback_section = "\n\n## 上一轮评审 — 结构化修正指令（请逐条执行）\n"
+            # 按 severity 分组展示
+            critical = [d for d in rewrite_directives if d.get("severity") == "critical"]
+            major = [d for d in rewrite_directives if d.get("severity") == "major"]
+            minor = [d for d in rewrite_directives if d.get("severity") == "minor"]
+
+            if critical:
+                feedback_section += "\n### 🔴 必须修改（critical）\n"
+                for d in critical:
+                    feedback_section += f"- [{d.get('dimension', '')}] {d.get('action', '')}\n"
+            if major:
+                feedback_section += "\n### 🟡 重点改进（major）\n"
+                for d in major:
+                    feedback_section += f"- [{d.get('dimension', '')}] {d.get('action', '')}\n"
+            if minor:
+                feedback_section += "\n### 🟢 可选优化（minor）\n"
+                for d in minor[:3]:  # 最多展示3条minor
+                    feedback_section += f"- [{d.get('dimension', '')}] {d.get('action', '')}\n"
+            feedback_section += "\n★ 请优先处理所有 critical 和 major 指令，保持已达标部分不变。\n"
+
+        elif critic_feedback or quality_scores:
+            # 回退：旧格式（critic_feedback 字符串 + 低分维度）
+            low_dims = [s for s in quality_scores if s.get("score", 10) < 7.0]
             feedback_section = "\n\n## 上一轮评审反馈（请针对性改进）\n"
             if critic_feedback:
                 feedback_section += f"总结: {critic_feedback}\n"

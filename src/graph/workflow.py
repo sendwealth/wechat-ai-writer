@@ -43,6 +43,9 @@ def _regroup_node(state: dict, run_config=None) -> dict:
 
 def _final_check_node(state: dict, run_config=None) -> dict:
     """质量终审：检查分数和错误，决定是否发布"""
+    import time
+    from utils.metrics import record_run
+
     overall_score = state.get("overall_score", 0)
     errors = state.get("errors", [])
     final_threshold = config.get("workflow.final_threshold", 7.0)
@@ -50,6 +53,16 @@ def _final_check_node(state: dict, run_config=None) -> dict:
     fatal_errors = [e for e in errors if e.get("severity") == "FATAL"]
 
     logger.info(f"⚖️ 终审: 分数 {overall_score}, 致命错误 {len(fatal_errors)}")
+
+    # 如果有历史最佳版本且当前分更低，用最佳版本
+    best_score = state.get("best_score", 0)
+    best_draft = state.get("best_draft", "")
+    if best_draft and best_score > overall_score:
+        logger.info(f"   ⭐ 使用历史最佳版本: {best_score} > 当前 {overall_score}")
+        return {
+            "draft_article": best_draft,
+            "overall_score": best_score,
+        }
 
     # 状态透传（路由函数读取 state 做决策）
     return {}

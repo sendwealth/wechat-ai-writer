@@ -29,11 +29,21 @@ def editor_node(state: dict, run_config=None) -> dict:
         llm = create_llm("editor")
         system_prompt = config.load_prompt("editor")
 
-        # 格式化薄弱维度
+        # 格式化薄弱维度 + 结构化指令
+        rewrite_directives = state.get("rewrite_directives", [])
         low_dims = [s for s in quality_scores if s.get("score", 10) < 8.0]
         dims_text = ""
         for s in low_dims:
             dims_text += f"\n- [{s.get('dimension', '')}] {s.get('score', 0)}/10: {s.get('feedback', '')}"
+
+        # 追加结构化修正指令（critical/major 级别）
+        directives_text = ""
+        if rewrite_directives:
+            important = [d for d in rewrite_directives if d.get("severity") in ("critical", "major")]
+            if important:
+                directives_text = "\n\n## 结构化修正指令\n"
+                for d in important:
+                    directives_text += f"- [{d.get('dimension', '')}] {d.get('action', '')}\n"
 
         user_prompt = f"""## 原始文章
 {article}
@@ -45,6 +55,7 @@ def editor_node(state: dict, run_config=None) -> dict:
 
 ## 总体反馈
 {critic_feedback}
+{directives_text}
 
 请根据以上反馈对文章进行针对性修改。"""
 

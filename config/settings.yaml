@@ -4,8 +4,8 @@
 workflow:
   max_write_rounds: 5
   max_regroup_rounds: 2
-  quality_threshold: 7.5
-  final_threshold: 7.0
+  quality_threshold: 8.0
+  final_threshold: 7.5
 
 agents:
   orchestrator:

@@ -58,12 +58,37 @@ def route_final(state: dict) -> str:
         logger.info(f"🟢 终审通过: {overall_score} >= {final_threshold} → 发布")
         return "publish"
     elif regroup_round < max_regroup:
-        # 选择另一种结构模式
+        # 智能选择新模式：根据 critic 薄弱维度决定
+        quality_scores = state.get("quality_scores", [])
+        dim_scores = {}
+        for qs in quality_scores:
+            if isinstance(qs, dict):
+                dim_scores[qs.get("dimension", "")] = qs.get("score", 5.0)
+
         patterns = ["conflict", "listicle", "story", "essay"]
         current = state.get("article_pattern", "essay")
-        remaining = [p for p in patterns if p != current]
-        import random
-        new_pattern = random.choice(remaining) if remaining else "essay"
+
+        # structure 分低 → listicle（列表体天然结构清晰）
+        # persuasiveness 分低 → conflict（冲突叙事增强说服力）
+        # hook 分低 → story（故事开头更抓人）
+        # originality 分低 → conflict
+        weak_map = {
+            "structure": "listicle",
+            "persuasiveness": "conflict",
+            "hook": "story",
+            "originality": "conflict",
+        }
+
+        new_pattern = None
+        for dim, suggested in weak_map.items():
+            if dim_scores.get(dim, 10) < 6.5 and suggested != current:
+                new_pattern = suggested
+                break
+
+        if not new_pattern:
+            remaining = [p for p in patterns if p != current]
+            import random
+            new_pattern = random.choice(remaining) if remaining else "essay"
 
         logger.info(
             f"🟡 终审不达标: {overall_score} < {final_threshold} "

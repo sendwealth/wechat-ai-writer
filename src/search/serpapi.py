@@ -1,9 +1,10 @@
 """
-SerpAPI 搜索集成
+SerpAPI 搜索集成（兼容 serpapi>=1.0 新版 API）
 """
 import os
 from typing import List, Dict, Any
-from serpapi import GoogleSearch, SerpApiClient
+
+import serpapi
 from search.base import BaseSearch
 from utils.logger import logger
 
@@ -17,7 +18,7 @@ class SerpAPISearch(BaseSearch):
             raise ValueError("SERPAPI_KEY 未配置")
 
     def search(self, query: str, count: int = 10, **kwargs) -> List[Dict[str, Any]]:
-        """执行普通搜索，支持 tbs 等引擎参数"""
+        """执行普通搜索"""
         logger.info(f"SerpAPI 搜索: {query}")
 
         try:
@@ -30,9 +31,10 @@ class SerpAPISearch(BaseSearch):
             }
             params.update(kwargs)
 
-            search = GoogleSearch(params)
-            results = search.get_dict()
-            organic_results = results.get("organic_results", [])
+            client = serpapi.Client(api_key=self.api_key)
+            results = client.search(params)
+            # SerpResults 兼容 dict 访问
+            organic_results = results.get("organic_results", []) if hasattr(results, 'get') else results["organic_results"]
 
             articles = []
             for item in organic_results[:count]:
@@ -65,13 +67,12 @@ class SerpAPISearch(BaseSearch):
                 "gl": "cn",
             }
 
-            client = SerpApiClient(params)
-            results = client.get_dict()
-            news_results = results.get("news_results", [])
+            client = serpapi.Client(api_key=self.api_key)
+            results = client.search(params)
+            news_results = results.get("news_results", []) if hasattr(results, 'get') else results.get("news_results", [])
 
             articles = []
             for item in news_results[:count]:
-                # Google News 结果可能嵌套在 stories 中
                 if "stories" in item and isinstance(item["stories"], list):
                     for story in item["stories"]:
                         articles.append({
