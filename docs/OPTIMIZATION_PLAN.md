@@ -290,7 +290,7 @@ _状态: 待执行_
 **优化建议**:
 ```json
 {
-  "model": "glm-5",
+  "model": "glm-5.2",
   "temperature": 0.85,
   "max_tokens": 6000,
   "top_p": 0.95,

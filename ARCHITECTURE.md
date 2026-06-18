@@ -572,7 +572,7 @@ workflow:
 
 agents:
   orchestrator:
-    model: glm-5
+    model: glm-5.2
     temperature: 0.3
   research:
     max_results: 8
@@ -582,15 +582,15 @@ agents:
     rule_weight: 0.4
     llm_weight: 0.6
   writer:
-    model: glm-5
+    model: glm-5.2
     temperature: 0.85
     max_tokens: 6000
     word_target: [1500, 2500]
   critic:
-    model: glm-5
+    model: glm-5.2
     temperature: 0.2
   editor:
-    model: glm-5
+    model: glm-5.2
     temperature: 0.5
   visual:
     provider: cogview

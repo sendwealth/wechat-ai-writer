@@ -20,7 +20,7 @@ class GLM5LLM(BaseLLM):
     
     def build(self) -> ChatOpenAI:
         """构建 GLM-5 LLM 实例"""
-        model = self.config.get("model", "glm-5")
+        model = self.config.get("model", "glm-5.2")
         temperature = self.config.get("temperature", 0.7)
         max_tokens = self.config.get("max_tokens", 2000)
         top_p = self.config.get("top_p", 0.9)

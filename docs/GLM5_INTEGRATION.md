@@ -58,11 +58,11 @@ python src/main.py --keyword "人工智能" --dry-run
 
 | 模型 | 上下文 | 价格（千tokens） | 适用场景 |
 |------|--------|-----------------|---------|
-| **glm-5** | 128K | ¥0.005 | 通用场景（推荐）|
+| **glm-5.2** | 128K | ¥0.005 | 通用场景（推荐）|
 | **glm-4-plus** | 128K | ¥0.05 | 复杂任务 |
 | **glm-4-flash** | 128K | ¥0.001 | 快速响应 |
 
-**推荐使用**: `glm-5` - 性价比最高
+**推荐使用**: `glm-5.2` - 性价比最高
 
 ---
 
@@ -72,7 +72,7 @@ python src/main.py --keyword "人工智能" --dry-run
 `config/llm/extract.json`:
 ```json
 {
-  "model": "glm-5",
+  "model": "glm-5.2",
   "temperature": 0.3,
   "max_tokens": 2000,
   "top_p": 0.9
@@ -83,7 +83,7 @@ python src/main.py --keyword "人工智能" --dry-run
 `config/llm/generate.json`:
 ```json
 {
-  "model": "glm-5",
+  "model": "glm-5.2",
   "temperature": 0.9,
   "max_tokens": 8000,
   "top_p": 0.98
@@ -127,7 +127,7 @@ from langchain_openai import ChatOpenAI
 class GLM5LLM(BaseLLM):
     def build(self) -> ChatOpenAI:
         return ChatOpenAI(
-            model="glm-5",
+            model="glm-5.2",
             temperature=0.7,
             max_tokens=2000,
             api_key=self.api_key,

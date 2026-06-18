@@ -28,7 +28,7 @@ class UnifiedLLM:
 
         api_key = llm_config["api_key"]
         base_url = llm_config["base_url"]
-        model = agent_config.get("model", llm_config.get("model", "glm-5"))
+        model = agent_config.get("model", llm_config.get("model", "glm-5.2"))
         temperature = agent_config.get("temperature", 0.7)
         max_tokens = agent_config.get("max_tokens", 4000)
 

@@ -56,7 +56,7 @@ class Config:
             "provider": provider,
             "api_key": api_key,
             "base_url": provider_config.get("base_url", ""),
-            "model": provider_config.get("model", "glm-5"),
+            "model": provider_config.get("model", "glm-5.2"),
         }
 
     def load_prompt(self, prompt_name: str) -> str:
