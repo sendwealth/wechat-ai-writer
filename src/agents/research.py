@@ -60,7 +60,6 @@ def research_node(state: dict, run_config=None) -> dict:
         search = create_search()
         end_date = datetime.now()
         start_date = end_date - timedelta(days=recency_days)
-        date_filter = f"after:{start_date.strftime('%Y-%m-%d')}"
 
         # ── 三路搜索 ──
         all_results = []
@@ -76,7 +75,7 @@ def research_node(state: dict, run_config=None) -> dict:
             logger.warning(f"⚠️ 新闻搜索失败: {e}")
 
         # 2. 数据/报告搜索（普通搜索 + 时间过滤）
-        data_query = f"{keyword} 数据 统计 报告 {date_filter}"
+        data_query = f"{keyword} 数据 统计 报告"
         try:
             data_results = search.search(data_query, per_query, tbs="qdr:w")
             for r in data_results:
@@ -86,10 +85,10 @@ def research_node(state: dict, run_config=None) -> dict:
         except Exception as e:
             logger.warning(f"⚠️ 数据搜索失败: {e}")
 
-        # 3. 观点/评测搜索（无时间限制，要深度分析）
+        # 3. 观点/评测搜索（限近一个月，要深度分析）
         opinion_query = f"{keyword} 案例 评测 观点"
         try:
-            opinion_results = search.search(opinion_query, per_query)
+            opinion_results = search.search(opinion_query, per_query, tbs="qdr:m")
             for r in opinion_results:
                 r["_source_type"] = "opinion"
             all_results.extend(opinion_results)
@@ -142,7 +141,7 @@ def research_node(state: dict, run_config=None) -> dict:
 
             articles_text += text
 
-        user_prompt = f"主题: {keyword}\n\n搜索结果:\n{articles_text}\n\n请筛选并提取关键数据点。"
+        user_prompt = f"主题: {keyword}\n当前日期: {end_date.strftime('%Y-%m-%d')}\n\n搜索结果:\n{articles_text}\n\n请筛选并提取关键数据点。丢弃任何早于 {start_date.strftime('%Y-%m-%d')} 的过时内容。"
 
         messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
         response = llm.invoke(messages)
